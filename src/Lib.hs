@@ -1,6 +1,6 @@
 module Lib where
 
-import Control.Monad (void,guard)
+import Control.Monad 
 import Control.Monad.Combinators
 import Data.Void
 import Text.Megaparsec
@@ -16,6 +16,7 @@ type Document = [Block]
 
 data Block = Heading Int [Inline]
            | Para [Inline]
+           | Blank
            | Blockquote [Block]
            | List ListType [[Block]]
            | CodeBlock (Maybe String) String
@@ -45,18 +46,21 @@ data Inline = Text String
 
 type Parser = Parsec Void String
 
-parseLine :: Parser String
-parseLine = do
-  rest <- many (letterChar <|> char ' ')
-  newline <- optional eol
-  return $ case newline of
-    Just _ -> rest ++ " "
-    Nothing -> rest
-    
+parseDocument :: Parser Document
+parseDocument = parseBlock `sepBy` ((string "\n\n") <|> (string "\n"))
+
+parseBlock :: Parser Block
+parseBlock = try parseHeading <|> parseParagraph
+
+parseParagraph :: Parser Block
+parseParagraph = do
+  str <- some (anySingleBut '\n')
+  return $ Para [Text str]
+
 parseHeading :: Parser Block
 parseHeading = do
   hashes <- some (char '#')
   guard (length hashes <= 6)
   void spaceChar
-  str <- parseLine
+  str <- some (anySingleBut '\n')
   return $ Heading (length hashes) [Text str]
