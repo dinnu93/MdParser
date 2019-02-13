@@ -1,11 +1,11 @@
 module Lib where
 
-import Control.Monad (void)
+import Control.Monad (void,guard)
 import Control.Monad.Combinators
 import Data.Void
 import Text.Megaparsec
 import Text.Megaparsec.Char
-import Data.Text (Text)
+import Control.Applicative ((<|>))
 
 -- Types
 
@@ -18,8 +18,8 @@ data Block = Heading Int [Inline]
            | Para [Inline]
            | Blockquote [Block]
            | List ListType [[Block]]
-           | CodeBlock (Maybe Text) Text
-           | HtmlBlock Text
+           | CodeBlock (Maybe String) String
+           | HtmlBlock String
            | HRule
            deriving (Show,Eq)
 
@@ -30,18 +30,33 @@ data NumWrapper = PeriodFollowing | ParenFollowing | ParensAround
 
 -- Inline types
 
-data Inline = Str Text
+data Inline = Text String
             | Space
             | SoftBreak
             | LineBreak
             | Emph [Inline]
             | Strong [Inline]
-            | Code Text
-            | Link [Inline] Text
-            | Image [Inline] Text
+            | Code String
+            | Link [Inline] String
+            | Image [Inline] String
             deriving (Show,Eq)
             
 -- Parser
 
 type Parser = Parsec Void String
 
+parseLine :: Parser String
+parseLine = do
+  rest <- many (letterChar <|> char ' ')
+  newline <- optional eol
+  return $ case newline of
+    Just _ -> rest ++ " "
+    Nothing -> rest
+    
+parseHeading :: Parser Block
+parseHeading = do
+  hashes <- some (char '#')
+  guard (length hashes <= 6)
+  void spaceChar
+  str <- parseLine
+  return $ Heading (length hashes) [Text str]
