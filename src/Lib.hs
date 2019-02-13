@@ -23,6 +23,11 @@ data Block = Heading Int [Inline]
            | HRule
            deriving (Show,Eq)
 
+data ListType = Bullet Char | Numbered NumWrapper Int deriving (Show,Eq)
+
+data NumWrapper = PeriodFollowing | ParenFollowing | ParensAround
+                deriving (Show,Eq)
+
 -- Inline types
 
 data Inline = Str Text
@@ -34,7 +39,7 @@ data Inline = Str Text
             | Code Text
             | Link [Inline] Text
             | Image [Inline] Text
-            deriving Show
+            deriving (Show,Eq)
             
 -- Parser
 
